@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from .routers import movies
 from .database import engine, Base
 
+# use `uvicorn app.main:app --reload` to run API
+# use API at `http://localhost:8000/docs``
+
 # Create tables
 Base.metadata.create_all(bind=engine)
 
