@@ -48,5 +48,5 @@ class MovieFilters(BaseModel):
     year: Optional[int] = None
     min_budget: Optional[int] = None
     language: Optional[str] = None
-    sort_by: Optional[str] = Field("popularity", regex="^(popularity|vote_average|release_date|revenue|budget)$")
-    order: Optional[str] = Field("desc", regex="^(asc|desc)$")
+    sort_by: Optional[str] = Field("popularity", pattern="^(popularity|vote_average|release_date|revenue|budget)$")
+    order: Optional[str] = Field("desc", pattern="^(asc|desc)$")
