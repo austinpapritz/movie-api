@@ -3,6 +3,7 @@ import pytest
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -10,12 +11,13 @@ from app.database import get_db, Base
 from app.models.movie import Movie
 
 # Test database configuration
-TEST_DATABASE_URL = "sqlite:///./test_movies.db"
+TEST_DATABASE_URL = "sqlite:///:memory:"  # In-memory database
 
 # Create test engine
 test_engine = create_engine(
     TEST_DATABASE_URL, 
-    connect_args={"check_same_thread": False}
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,  # Keep connection alive for in-memory DB
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
@@ -32,8 +34,7 @@ def db_engine():
     """Create test database engine for the entire test session"""
     Base.metadata.create_all(bind=test_engine)
     yield test_engine
-    # Cleanup: Remove test database after all tests
-    os.unlink("test_movies.db") if os.path.exists("test_movies.db") else None
+    # In-memory database automatically cleans up
 
 @pytest.fixture(scope="function")
 def db_session(db_engine):
@@ -65,12 +66,14 @@ def client(db_session):
 @pytest.fixture
 def sample_movie(db_session):
     """Create a sample movie for testing"""
+    from datetime import date
+    
     movie = Movie(
         id=1,
         title="Test Movie",
         original_title="Test Movie",
         overview="A test movie for testing purposes",
-        release_date="2023-01-01",
+        release_date=date(2023, 1, 1),
         runtime=120.0,
         budget=1000000,
         revenue=2000000,
