@@ -11,7 +11,7 @@ from ..schemas.movie import MovieResponse, MovieListResponse
 
 router = APIRouter()
 
-@router.get("/movie/{movie_id}", response_model=MovieResponse)
+@router.get("/movies/{movie_id}", response_model=MovieResponse)
 async def get_movie(movie_id: int, db: Session = Depends(get_db)):
     movie = db.query(Movie).filter(Movie.id == movie_id).first()
 

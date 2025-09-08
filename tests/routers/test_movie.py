@@ -74,16 +74,16 @@ def test_movies_endpoint_pagination(client, sample_movies):
     assert len(data["movies"]) == 1  # Only 1 movie left on page 2
     assert data["page"] == 2
 
-# def test_single_movie_endpoint(client, sample_movie):
-#     """Test getting a single movie by ID"""
-#     response = client.get(f"/api/v1/movies/{sample_movie.id}")
+def test_single_movie_endpoint(client, sample_movie):
+    """Test getting a single movie by ID"""
+    response = client.get(f"/api/v1/movies/{sample_movie.id}")
     
-#     assert response.status_code == 200
-#     data = response.json()
+    assert response.status_code == 200
+    data = response.json()
     
-#     assert data["id"] == sample_movie.id
-#     assert data["title"] == sample_movie.title
-#     assert data["overview"] == sample_movie.overview
+    assert data["id"] == sample_movie.id
+    assert data["title"] == sample_movie.title
+    assert data["overview"] == sample_movie.overview
 
 def test_single_movie_not_found(client):
     """Test 404 for non-existent movie"""
