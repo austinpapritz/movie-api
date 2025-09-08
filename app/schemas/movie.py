@@ -12,6 +12,7 @@ class ProductionCompanySchema(BaseModel):
 
 class MovieBase(BaseModel):
     title: str
+    original_title: Optional[str] = None
     overview: Optional[str] = None
     release_date: Optional[date] = None
     runtime: Optional[float] = None
