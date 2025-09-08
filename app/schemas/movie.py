@@ -31,7 +31,7 @@ class MovieResponse(MovieBase):
     imdb_id: Optional[str] = None
     profit_margin: Optional[float] = None  # Calculated field
     
-    class Config:
+    class ConfigDict:
         from_attributes = True
 
 class MovieListResponse(BaseModel):

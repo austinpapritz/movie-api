@@ -1,4 +1,3 @@
-# tests/test_basic.py
 import pytest
 
 def test_root_endpoint(client):
