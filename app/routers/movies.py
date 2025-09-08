@@ -11,6 +11,43 @@ from ..schemas.movie import MovieResponse, MovieListResponse
 
 router = APIRouter()
 
+@router.get("/movies/{movie_id}", response_model=MovieResponse)
+async def get_movie(movie_id: int, db: Session = Depends(get_db)):
+    movie = db.query(Movie).filter(Movie.id == movie_id).first()
+
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found")
+
+      # Extract values first to avoid SQLAlchemy column issues
+    budget = getattr(movie, 'budget', None)
+    revenue = getattr(movie, 'revenue', None)
+    
+    # Calculate profit margin
+    profit_margin = None
+    if budget and revenue and budget > 0 and revenue > 0:
+        profit_margin = round(((revenue - budget) / budget) * 100, 2)
+    
+    movie_dict = {
+    "id": movie.id,
+    "title": movie.title,
+    "original_title": movie.original_title,
+    "overview": movie.overview,
+    "release_date": movie.release_date,
+    "runtime": movie.runtime,
+    "vote_average": movie.vote_average,
+    "vote_count": movie.vote_count,
+    "popularity": movie.popularity,
+    "budget": movie.budget,
+    "revenue": movie.revenue,
+    "poster_path": movie.poster_path,
+    "imdb_id": movie.imdb_id,
+    "genres": movie.genres,
+    "profit_margin": profit_margin
+}
+
+    return MovieResponse(**movie_dict)
+
+
 @router.get("/movies", response_model=MovieListResponse)
 async def get_movies(
     # Pagination parameters
@@ -359,3 +396,4 @@ async def get_movie_stats(db: Session = Depends(get_db)):
             "biggest_budget": financial_stats.max_budget if financial_stats else None
         }
     }
+
