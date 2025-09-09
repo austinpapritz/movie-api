@@ -42,9 +42,9 @@ def db_session(db_engine):
     connection = db_engine.connect()
     transaction = connection.begin()
     session = TestingSessionLocal(bind=connection)
-    
+
     yield session
-    
+
     session.close()
     transaction.rollback()
     connection.close()
@@ -54,12 +54,12 @@ def client(db_session):
     """Create test client with overridden database"""
     def override_get_db_for_testing():
         yield db_session
-    
+
     app.dependency_overrides[get_db] = override_get_db_for_testing
-    
+
     with TestClient(app) as test_client:
         yield test_client
-    
+
     # Clean up dependency override
     app.dependency_overrides.clear()
 
@@ -67,7 +67,7 @@ def client(db_session):
 def sample_movie(db_session):
     """Create a sample movie for testing"""
     from datetime import date
-    
+
     movie = Movie(
         id=1,
         title="Test Movie",
@@ -131,9 +131,9 @@ def sample_movies(db_session):
             status="Released"
         )
     ]
-    
+
     for movie in movies:
         db_session.add(movie)
     db_session.commit()
-    
+
     return movies

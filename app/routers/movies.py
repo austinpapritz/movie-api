@@ -21,12 +21,12 @@ async def get_movie(movie_id: int, db: Session = Depends(get_db)):
       # Extract values first to avoid SQLAlchemy column issues
     budget = getattr(movie, 'budget', None)
     revenue = getattr(movie, 'revenue', None)
-    
+
     # Calculate profit margin
     profit_margin = None
     if budget and revenue and budget > 0 and revenue > 0:
         profit_margin = round(((revenue - budget) / budget) * 100, 2)
-    
+
     movie_dict = {
     "id": movie.id,
     "title": movie.title,
@@ -53,7 +53,7 @@ async def get_movies(
     # Pagination parameters
     page: int = Query(1, ge=1, description="Page number (starts at 1)"),
     limit: int = Query(20, ge=1, le=100, description="Number of movies per page"),
-    
+
     # Filter parameters
     genre: Optional[str] = Query(None, description="Filter by genre (e.g., 'Action', 'Comedy')"),
     min_rating: Optional[float] = Query(None, ge=0, le=10, description="Minimum vote average"),
@@ -62,10 +62,10 @@ async def get_movies(
     min_budget: Optional[int] = Query(None, ge=0, description="Minimum budget in dollars"),
     max_budget: Optional[int] = Query(None, ge=0, description="Maximum budget in dollars"),
     language: Optional[str] = Query(None, description="Original language (e.g., 'en', 'fr', 'es')"),
-    
+
     # Search parameter
     search: Optional[str] = Query(None, min_length=2, description="Search in movie titles and overviews"),
-    
+
     # Sort parameters
     sort_by: str = Query(
     "popularity", 
@@ -73,13 +73,13 @@ async def get_movies(
     description="Field to sort by"
     ),
     order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order"),
-    
+
     # Database session
     db: Session = Depends(get_db)
 ):
     """
     Get movies with comprehensive filtering, sorting, and pagination.
-    
+
     This endpoint demonstrates:
     - Complex query building with multiple filters
     - Pagination with page/limit
@@ -87,38 +87,38 @@ async def get_movies(
     - Full-text search
     - Data transformation (profit calculations)
     """
-    
+
     # Start with base query
     query = db.query(Movie)
-    
+
     # Build filters list (we'll combine with AND)
     filters = []
-    
+
     # Genre filter - search in JSON array
     if genre:
         # This searches for the genre name within the JSON genres field
         filters.append(Movie.genres.like(f'%"name": "{genre}"%'))
-    
+
     # Rating filters
     if min_rating is not None:
         filters.append(Movie.vote_average >= min_rating)
     if max_rating is not None:
         filters.append(Movie.vote_average <= max_rating)
-    
+
     # Year filter - extract year from release_date
     if year:
         filters.append(func.strftime('%Y', Movie.release_date) == str(year))
-    
+
     # Budget filters
     if min_budget is not None:
         filters.append(Movie.budget >= min_budget)
     if max_budget is not None:
         filters.append(Movie.budget <= max_budget)
-    
+
     # Language filter
     if language:
         filters.append(Movie.original_language == language)
-    
+
     # Search filter - looks in title, original_title, and overview
     if search:
         search_term = f"%{search.lower()}%"
@@ -128,28 +128,28 @@ async def get_movies(
             func.lower(Movie.overview).like(search_term)
         )
         filters.append(search_conditions)
-    
+
     # Apply all filters
     if filters:
         query = query.filter(and_(*filters))
-    
+
     # Apply sorting
     sort_column = getattr(Movie, sort_by)
     if order == "desc":
         query = query.order_by(desc(sort_column))
     else:
         query = query.order_by(asc(sort_column))
-    
+
     # Get total count for pagination info (before applying limit/offset)
     total_count = query.count()
-    
+
     # Calculate pagination
     total_pages = math.ceil(total_count / limit) if total_count > 0 else 0
     offset = (page - 1) * limit
-    
+
     # Apply pagination and execute query
     movies = query.offset(offset).limit(limit).all()
-    
+
     # Transform movies with calculated fields
     movie_responses = []
     for movie in movies:
@@ -157,7 +157,7 @@ async def get_movies(
         profit_margin = None
         if movie.budget and movie.budget > 0 and movie.revenue and movie.revenue > 0:
             profit_margin = round(((movie.revenue - movie.budget) / movie.budget) * 100, 2)
-        
+
         # Create response object with all movie data plus calculated fields
         movie_dict = {
             "id": movie.id,
@@ -178,7 +178,7 @@ async def get_movies(
         }
         
         movie_responses.append(MovieResponse(**movie_dict))
-    
+
     return MovieListResponse(
         movies=movie_responses,
         total=total_count,
@@ -198,26 +198,26 @@ async def get_top_rated_movies(
 ):
     """
     Get the highest rated movies with a minimum vote threshold.
-    
+
     This prevents movies with just a few perfect ratings from dominating the list.
     You can also filter the top rated movies by genre or year.
     
     Example: /movies/top/rated?limit=20&min_votes=500&genre=Animation&year=2020
     """
-    
+
     # Start with base query
     query = db.query(Movie).filter(
         Movie.vote_count >= min_votes,
         Movie.vote_average.isnot(None)
     )
-    
+
     # Apply optional filters
     if genre:
         query = query.filter(Movie.genres.like(f'%"name": "{genre}"%'))
-    
+
     if year:
         query = query.filter(func.strftime('%Y', Movie.release_date) == str(year))
-    
+
     # Order by vote_average (desc), then by vote_count (desc) as tiebreaker
     movies = (
         query
@@ -225,14 +225,14 @@ async def get_top_rated_movies(
         .limit(limit)
         .all()
     )
-    
+
     # Transform with calculated fields
     movie_responses = []
     for movie in movies:
         profit_margin = None
         if movie.budget and movie.budget > 0 and movie.revenue and movie.revenue > 0:
             profit_margin = round(((movie.revenue - movie.budget) / movie.budget) * 100, 2)
-        
+
         movie_dict = {
             "id": movie.id,
             "title": movie.title,
@@ -252,7 +252,7 @@ async def get_top_rated_movies(
         }
         
         movie_responses.append(MovieResponse(**movie_dict))
-    
+
     return movie_responses
 
 
@@ -267,32 +267,32 @@ async def get_top_grossing_movies(
 ):
     """
     Get the highest grossing movies by box office revenue.
-    
+
     Features:
     - Filter by genre to see top grossers in specific categories
     - Filter by year range to compare different eras
     - Set minimum budget to focus on big-budget blockbusters
     - Shows profit margins for financial analysis
-    
+
     Example: /movies/top/grossing?limit=20&genre=Action&year_from=2010&min_budget=100000000
     """
-    
+
     # Start with movies that have revenue data
     query = db.query(Movie).filter(Movie.revenue > 0)
-    
+
     # Apply optional filters
     if genre:
         query = query.filter(Movie.genres.like(f'%"name": "{genre}"%'))
-    
+
     if year_from:
         query = query.filter(func.strftime('%Y', Movie.release_date) >= str(year_from))
-    
+
     if year_to:
         query = query.filter(func.strftime('%Y', Movie.release_date) <= str(year_to))
-    
+
     if min_budget:
         query = query.filter(Movie.budget >= min_budget)
-    
+
     # Order by revenue (highest first)
     movies = (
         query
@@ -300,17 +300,17 @@ async def get_top_grossing_movies(
         .limit(limit)
         .all()
     )
-    
+
     # Transform with calculated fields (profit margin is especially interesting here)
     movie_responses = []
     for movie in movies:
         profit_margin = None
         roi = None  # Return on Investment
-        
+
         if movie.budget and movie.budget > 0 and movie.revenue and movie.revenue > 0:
             profit_margin = round(((movie.revenue - movie.budget) / movie.budget) * 100, 2)
             roi = round(movie.revenue / movie.budget, 2)
-        
+
         movie_dict = {
             "id": movie.id,
             "title": movie.title,
@@ -330,7 +330,7 @@ async def get_top_grossing_movies(
         }
         
         movie_responses.append(MovieResponse(**movie_dict))
-    
+
     return movie_responses
 
 
@@ -341,12 +341,12 @@ async def get_movie_stats(db: Session = Depends(get_db)):
     Get overview statistics about the movie database.
     Helpful for understanding your dataset and testing queries.
     """
-    
+
     # Basic counts
     total_movies = db.query(Movie).count()
     movies_with_revenue = db.query(Movie).filter(Movie.revenue > 0).count()
     movies_with_budget = db.query(Movie).filter(Movie.budget > 0).count()
-    
+
     # Rating statistics  
     rating_stats = db.query(
         func.avg(Movie.vote_average).label('avg_rating'),
@@ -354,13 +354,13 @@ async def get_movie_stats(db: Session = Depends(get_db)):
         func.max(Movie.vote_average).label('max_rating'),
         func.count(Movie.vote_average).label('rated_movies')
     ).filter(Movie.vote_average.isnot(None)).first()
-    
+
     # Year range
     year_stats = db.query(
         func.min(func.strftime('%Y', Movie.release_date)).label('oldest_year'),
         func.max(func.strftime('%Y', Movie.release_date)).label('newest_year')
     ).filter(Movie.release_date.isnot(None)).first()
-    
+
     # Financial stats (for movies with budget/revenue data)
     financial_stats = db.query(
         func.sum(Movie.revenue).label('total_revenue'),
@@ -370,7 +370,7 @@ async def get_movie_stats(db: Session = Depends(get_db)):
         func.max(Movie.revenue).label('max_revenue'),
         func.max(Movie.budget).label('max_budget')
     ).filter(Movie.revenue > 0, Movie.budget > 0).first()
-    
+
     return {
         "overview": {
             "total_movies": total_movies,

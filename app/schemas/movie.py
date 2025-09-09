@@ -31,7 +31,7 @@ class MovieResponse(MovieBase):
     poster_path: Optional[str] = None
     imdb_id: Optional[str] = None
     profit_margin: Optional[float] = None  # Calculated field
-    
+
     class ConfigDict:
         from_attributes = True
 
