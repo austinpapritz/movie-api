@@ -13,7 +13,7 @@ from ..utils.security import validate_api_key
 
 router = APIRouter()
 @router.get("/movies/{movie_id}", response_model=MovieResponse)
-async def get_movie(movie_id: int, db: Session = Depends(get_db)):
+async def get_movie(movie_id: int, db: Session = Depends(get_db), api_key: APIKey = Depends(validate_api_key)):  # 🔑 API KEY REQUIRED)
     movie = db.query(Movie).filter(Movie.id == movie_id).first()
 
     if not movie:
