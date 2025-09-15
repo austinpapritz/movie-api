@@ -1,5 +1,5 @@
 # app/routers/movies.py
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, Security
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc, asc, func
 from typing import Optional, List
@@ -13,7 +13,7 @@ from ..utils.security import validate_api_key
 
 router = APIRouter()
 @router.get("/movies/{movie_id}", response_model=MovieResponse)
-async def get_movie(movie_id: int, db: Session = Depends(get_db), api_key: APIKey = Depends(validate_api_key)):  # 🔑 API KEY REQUIRED)
+async def get_movie(movie_id: int, db: Session = Depends(get_db), api_key: APIKey = Security(validate_api_key)):  # 🔑 API KEY REQUIRED)
     movie = db.query(Movie).filter(Movie.id == movie_id).first()
 
     if not movie:
@@ -77,7 +77,7 @@ async def get_movies(
     
     # Dependencies
     db: Session = Depends(get_db),
-    api_key: APIKey = Depends(validate_api_key)  # 🔑 API KEY REQUIRED
+    api_key: APIKey = Security(validate_api_key)  # 🔑 API KEY REQUIRED
 ):
     """
     Get movies with comprehensive filtering, sorting, and pagination.
@@ -200,7 +200,7 @@ async def get_top_rated_movies(
     genre: Optional[str] = Query(None, description="Filter by genre"),
     year: Optional[int] = Query(None, ge=1900, le=2030, description="Filter by release year"),
     db: Session = Depends(get_db),
-    api_key: APIKey = Depends(validate_api_key)  # 🔑 API KEY REQUIRED (lightweight)
+    api_key: APIKey = Security(validate_api_key)  # 🔑 API KEY REQUIRED (lightweight)
 ):
     """
     Get the highest rated movies with a minimum vote threshold.
@@ -272,7 +272,7 @@ async def get_top_grossing_movies(
     year_to: Optional[int] = Query(None, ge=1900, le=2030, description="Movies up to this year"),
     min_budget: Optional[int] = Query(None, ge=0, description="Minimum budget (to exclude low-budget successes)"),
     db: Session = Depends(get_db),
-    api_key: APIKey = Depends(validate_api_key)  # 🔑 API KEY REQUIRED
+    api_key: APIKey = Security(validate_api_key)  # 🔑 API KEY REQUIRED
 ):
     """
     Get the highest grossing movies by box office revenue.
@@ -347,7 +347,7 @@ async def get_top_grossing_movies(
 
 # Keep the stats endpoint public for now (no API key required)
 @router.get("/movies/stats")
-async def get_movie_stats(db: Session = Depends(get_db), api_key: APIKey = Depends(validate_api_key)):
+async def get_movie_stats(db: Session = Depends(get_db), api_key: APIKey = Security(validate_api_key)):
     """
     Get overview statistics about the movie database.
     
