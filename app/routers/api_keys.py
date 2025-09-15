@@ -15,7 +15,7 @@ def generate_api_key() -> str:
     random_part = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
     return f"sk_movie_{random_part}"
 
-@router.post("/api-keys")  # Removed response_model temporarily
+@router.post("/api-keys")
 async def create_api_key(
     key_data: APIKeyCreate,
     db: Session = Depends(get_db)
