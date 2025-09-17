@@ -7,6 +7,7 @@ import string
 from ..database import get_db
 from ..models.api_key import APIKey
 from ..schemas.api_key import APIKeyCreate, APIKeyResponse
+from ..utils.admin import verify_admin_secret
 
 router = APIRouter()
 
@@ -15,16 +16,19 @@ def generate_api_key() -> str:
     random_part = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
     return f"sk_movie_{random_part}"
 
-@router.post("/api-keys")
+@router.post("/api-keys", response_model=APIKeyResponse)
 async def create_api_key(
     key_data: APIKeyCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_admin_secret)  # 🔒 ADMIN ONLY
 ):
     """
     Create a new API key.
     
-    For now, this is open - anyone can create a key.
-    We'll add admin protection in the next step.
+    **Admin only endpoint** - requires admin_secret query parameter.
+    
+    The generated API key will only be shown once in the response.
+    Make sure to save it securely!
     """
     
     # Check if name already exists
@@ -49,3 +53,82 @@ async def create_api_key(
     db.refresh(db_api_key)
     
     return APIKeyResponse.model_validate(db_api_key)
+
+
+@router.get("/api-keys")
+async def list_api_keys(
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_admin_secret)  # 🔒 ADMIN ONLY
+):
+    """
+    List all API keys (without exposing the actual key values).
+    
+    **Admin only endpoint** - requires admin_secret query parameter.
+    """
+    
+    api_keys = db.query(APIKey).order_by(APIKey.created_at.desc()).all()
+    
+    # Return info without exposing the actual keys
+    return [
+        {
+            "id": key.id,
+            "name": key.name,
+            "is_active": key.is_active,
+            "created_at": key.created_at,
+            "key_preview": f"{key.key[:12]}..." if key.key else None  # Show first 12 chars only
+        }
+        for key in api_keys
+    ]
+
+
+@router.patch("/api-keys/{key_id}")
+async def update_api_key(
+    key_id: int,
+    is_active: bool,
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_admin_secret)  # 🔒 ADMIN ONLY
+):
+    """
+    Activate or deactivate an API key.
+    
+    **Admin only endpoint** - requires admin_secret query parameter.
+    """
+    
+    api_key = db.query(APIKey).filter(APIKey.id == key_id).first()
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="API key not found"
+        )
+    
+    api_key.is_active = is_active
+    db.commit()
+    
+    status_text = "activated" if is_active else "deactivated"
+    return {"message": f"API key '{api_key.name}' has been {status_text}"}
+
+
+@router.delete("/api-keys/{key_id}")
+async def delete_api_key(
+    key_id: int,
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_admin_secret)  # 🔒 ADMIN ONLY
+):
+    """
+    Permanently delete an API key.
+    
+    **Admin only endpoint** - requires admin_secret query parameter.
+    """
+    
+    api_key = db.query(APIKey).filter(APIKey.id == key_id).first()
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="API key not found"
+        )
+    
+    key_name = api_key.name
+    db.delete(api_key)
+    db.commit()
+    
+    return {"message": f"API key '{key_name}' has been permanently deleted"}
