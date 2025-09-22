@@ -8,7 +8,7 @@ async def verify_admin_secret(admin_secret: str = Query(..., description="Admin 
     Simple admin authentication using environment variable.
     In production, replace with proper admin user authentication.
     """
-    expected_secret = os.getenv("SECRET_KEY", "your-secret-key-here-change-in-production")
+    expected_secret = os.getenv("SECRET_KEY", "jack-and-jill-went-up-the-hill-to-fetch-a-pale-of-water")
     
     # Use secrets.compare_digest for timing attack protection
     if not secrets.compare_digest(admin_secret, expected_secret):

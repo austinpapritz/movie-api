@@ -33,6 +33,7 @@ ENV/
 .env.local
 .env.production
 .env.staging
+utils/admin.py
 
 # Database
 *.db
