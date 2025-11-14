@@ -2,12 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routers import movies
 from .database import engine, Base
+from .config import TESTING
 
 # use `uvicorn app.main:app --reload` to run API
 # use API at `http://localhost:8000/docs``
 
-# Create tables
-Base.metadata.create_all(bind=engine)
+# Create tables (skip during tests to prevent movie.db creation)
+if not TESTING:
+    Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Movie API",

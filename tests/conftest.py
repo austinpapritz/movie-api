@@ -1,6 +1,10 @@
 # tests/conftest.py
 import pytest
 import os
+
+# Set testing environment variable BEFORE importing app to prevent movie.db creation
+os.environ["TESTING"] = "True"
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
